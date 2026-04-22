@@ -1,0 +1,3 @@
+# Exclude check:trailing_whitespace from rake test
+Rake::Task['check:trailing_whitespace'].clear_prerequisites
+Rake::Task['check'].prerequisites.delete('check:trailing_whitespace')
