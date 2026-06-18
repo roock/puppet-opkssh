@@ -35,6 +35,8 @@
 # @param etc_path  The directory to write configs to
 # @param configure_sshd If sshd config should be adopted to use opkssh
 # @param reload_sshd If sshd service should be reloaded after changing the config
+# @param download_url The download URL for the opkssh binary. If provided, takes priority over download_base
+# @param download_base The base URL for downloading opkssh. Used with version to construct full URL. Ignored if download_url is specified
 # @param auth_id_content The contents of the opkssh auth_id file
 # @param config_content The contents of the opkssh config file
 # @param providers_content The contents of the opkssh providers file
@@ -50,6 +52,8 @@ class opkssh (
   String $etc_path        = '/etc',
   Boolean $configure_sshd = true,
   Boolean $reload_sshd    = true,
+  Optional[String] $download_url = undef,
+  Optional[String] $download_base = undef,
   Optional[String] $auth_id_content = undef,
   Optional[String] $config_content = undef,
   Optional[String] $providers_content = undef,
@@ -76,8 +80,14 @@ class opkssh (
     mode   => '0755',
   }
 
-  $tarball_name = 'opkssh-linux-amd64'
-  $url          = "https://github.com/openpubkey/opkssh/releases/download/v${version}/${tarball_name}"
+  $binary_name = 'opkssh-linux-amd64'
+  $url         = $download_url ? {
+    undef => $download_base ? {
+      undef   => "https://github.com/openpubkey/opkssh/releases/download/v${version}/${binary_name}",
+      default => "${download_base}/v${version}/${binary_name}",
+    },
+    default => $download_url,
+  }
 
   file { "${install_dir}/opkssh":
     ensure  => file,
