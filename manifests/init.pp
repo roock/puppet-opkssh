@@ -37,6 +37,7 @@
 # @param reload_sshd If sshd service should be reloaded after changing the config
 # @param download_url The download URL for the opkssh binary. If provided, takes priority over download_base
 # @param download_base The base URL for downloading opkssh. Used with version to construct full URL. Ignored if download_url is specified
+# @param checksum The checksum type to use when downloading the opkssh binary
 # @param auth_id_content The contents of the opkssh auth_id file
 # @param config_content The contents of the opkssh config file
 # @param providers_content The contents of the opkssh providers file
@@ -54,6 +55,7 @@ class opkssh (
   Boolean $reload_sshd    = true,
   Optional[String] $download_url = undef,
   Optional[String] $download_base = undef,
+  Optional[String] $checksum      = undef,
   Optional[String] $auth_id_content = undef,
   Optional[String] $config_content = undef,
   Optional[String] $providers_content = undef,
@@ -90,12 +92,13 @@ class opkssh (
   }
 
   file { "${install_dir}/opkssh":
-    ensure  => file,
-    source  => $url,
-    owner   => 'root',
-    group   => $group,
-    mode    => '0755',
-    require => File[$install_dir],
+    ensure   => file,
+    source   => $url,
+    checksum => $checksum,
+    owner    => 'root',
+    group    => $group,
+    mode     => '0755',
+    require  => File[$install_dir],
   }
 
   $notify_setting = $reload_sshd ? {
