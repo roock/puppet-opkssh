@@ -71,9 +71,9 @@ See the [opkssh documentation](https://github.com/openpubkey/opkssh#server-confi
 ## Limitations
 
 * Does not manage SELinux settings for opkssh
-* Only supports downloading amd64 binaries
+* Supports downloading amd64 and arm64 binaries
 * Only tested on Debian/Ubuntu
-* Probably doens't work when you require a proxy for downloading
+* Probably doesn't work when you require a proxy for downloading
 
 ## Links
 

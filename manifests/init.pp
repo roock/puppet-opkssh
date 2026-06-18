@@ -37,6 +37,7 @@
 # @param reload_sshd If sshd service should be reloaded after changing the config
 # @param download_url The download URL for the opkssh binary. If provided, takes priority over download_base
 # @param download_base The base URL for downloading opkssh. Used with version to construct full URL. Ignored if download_url is specified
+# @param architecture The CPU architecture to download for, typically amd64 or arm64
 # @param checksum The checksum type to use when downloading the opkssh binary
 # @param auth_id_content The contents of the opkssh auth_id file
 # @param config_content The contents of the opkssh config file
@@ -55,6 +56,7 @@ class opkssh (
   Boolean $reload_sshd    = true,
   Optional[String] $download_url = undef,
   Optional[String] $download_base = undef,
+  Optional[String] $architecture = undef,
   Optional[String] $checksum      = undef,
   Optional[String] $auth_id_content = undef,
   Optional[String] $config_content = undef,
@@ -82,7 +84,30 @@ class opkssh (
     mode   => '0755',
   }
 
-  $binary_name = 'opkssh-linux-amd64'
+  $effective_architecture = $architecture ? {
+    undef => $facts['architecture'] ? {
+      undef   => $facts['os']['architecture'] ? {
+        undef   => 'amd64',
+        default => $facts['os']['architecture'],
+      },
+      default => $facts['architecture'],
+    },
+    default => $architecture,
+  }
+
+  case $effective_architecture {
+    'x86_64', 'amd64': {
+      $binary_arch = 'amd64'
+    }
+    'aarch64', 'arm64': {
+      $binary_arch = 'arm64'
+    }
+    default: {
+      fail("Unsupported architecture '${effective_architecture}'. opkssh module only supports amd64 and arm64.")
+    }
+  }
+
+  $binary_name = "opkssh-linux-${binary_arch}"
   $url         = $download_url ? {
     undef => $download_base ? {
       undef   => "https://github.com/openpubkey/opkssh/releases/download/v${version}/${binary_name}",
