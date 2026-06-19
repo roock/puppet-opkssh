@@ -1,6 +1,6 @@
 {
   "name": "roock-opkssh",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "Roman Pertl",
   "summary": "Installs and configures opkssh",
   "license": "Apache-2.0",
