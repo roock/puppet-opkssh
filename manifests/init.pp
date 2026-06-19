@@ -85,12 +85,12 @@ class opkssh (
   }
 
   $effective_architecture = $architecture ? {
-    undef => $facts['architecture'] ? {
+    undef => $facts['os']['architecture'] ? {
       undef   => $facts['os']['architecture'] ? {
         undef   => 'amd64',
         default => $facts['os']['architecture'],
       },
-      default => $facts['architecture'],
+      default => $facts['os']['architecture'],
     },
     default => $architecture,
   }
