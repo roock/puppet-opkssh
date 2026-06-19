@@ -29,6 +29,10 @@ The following parameters are available in the `opkssh` class:
 * [`etc_path`](#-opkssh--etc_path)
 * [`configure_sshd`](#-opkssh--configure_sshd)
 * [`reload_sshd`](#-opkssh--reload_sshd)
+* [`download_url`](#-opkssh--download_url)
+* [`download_base`](#-opkssh--download_base)
+* [`architecture`](#-opkssh--architecture)
+* [`checksum`](#-opkssh--checksum)
 * [`auth_id_content`](#-opkssh--auth_id_content)
 * [`config_content`](#-opkssh--config_content)
 * [`providers_content`](#-opkssh--providers_content)
@@ -87,7 +91,7 @@ Data type: `String`
 
 The version of opkssh to install
 
-Default value: `'0.13.0'`
+Default value: `'0.14.0'`
 
 ##### <a name="-opkssh--install_dir"></a>`install_dir`
 
@@ -120,6 +124,38 @@ Data type: `Boolean`
 If sshd service should be reloaded after changing the config
 
 Default value: `true`
+
+##### <a name="-opkssh--download_url"></a>`download_url`
+
+Data type: `Optional[String]`
+
+The download URL for the opkssh binary. If provided, takes priority over download_base
+
+Default value: `undef`
+
+##### <a name="-opkssh--download_base"></a>`download_base`
+
+Data type: `Optional[String]`
+
+The base URL for downloading opkssh. Used with version to construct full URL. Ignored if download_url is specified
+
+Default value: `undef`
+
+##### <a name="-opkssh--architecture"></a>`architecture`
+
+Data type: `Optional[String]`
+
+The CPU architecture to download for, typically amd64 or arm64
+
+Default value: `undef`
+
+##### <a name="-opkssh--checksum"></a>`checksum`
+
+Data type: `Optional[String]`
+
+The checksum type to use when downloading the opkssh binary
+
+Default value: `undef`
 
 ##### <a name="-opkssh--auth_id_content"></a>`auth_id_content`
 

@@ -35,6 +35,10 @@
 # @param etc_path  The directory to write configs to
 # @param configure_sshd If sshd config should be adopted to use opkssh
 # @param reload_sshd If sshd service should be reloaded after changing the config
+# @param download_url The download URL for the opkssh binary. If provided, takes priority over download_base
+# @param download_base The base URL for downloading opkssh. Used with version to construct full URL. Ignored if download_url is specified
+# @param architecture The CPU architecture to download for, typically amd64 or arm64
+# @param checksum The checksum type to use when downloading the opkssh binary
 # @param auth_id_content The contents of the opkssh auth_id file
 # @param config_content The contents of the opkssh config file
 # @param providers_content The contents of the opkssh providers file
@@ -45,11 +49,15 @@ class opkssh (
   Optional[Integer] $gid            = undef,
   Boolean $system_user     = true,
   String $logfile_group   = 'adm',
-  String $version         = '0.13.0',
+  String $version         = '0.14.0',
   String $install_dir     = '/opt/opkssh',
   String $etc_path        = '/etc',
   Boolean $configure_sshd = true,
   Boolean $reload_sshd    = true,
+  Optional[String] $download_url = undef,
+  Optional[String] $download_base = undef,
+  Optional[String] $architecture = undef,
+  Optional[String] $checksum      = undef,
   Optional[String] $auth_id_content = undef,
   Optional[String] $config_content = undef,
   Optional[String] $providers_content = undef,
@@ -76,39 +84,66 @@ class opkssh (
     mode   => '0755',
   }
 
-  $tarball_name = 'opkssh-linux-amd64'
-  $url          = "https://github.com/openpubkey/opkssh/releases/download/v${version}/${tarball_name}"
+  $effective_architecture = $architecture ? {
+    undef => $facts['os']['architecture'] ? {
+      undef   => $facts['os']['architecture'] ? {
+        undef   => 'amd64',
+        default => $facts['os']['architecture'],
+      },
+      default => $facts['os']['architecture'],
+    },
+    default => $architecture,
+  }
 
+  case $effective_architecture {
+    'x86_64', 'amd64': {
+      $binary_arch = 'amd64'
+    }
+    'aarch64', 'arm64': {
+      $binary_arch = 'arm64'
+    }
+    default: {
+      fail("Unsupported architecture '${effective_architecture}'. opkssh module only supports amd64 and arm64.")
+    }
+  }
+
+  $binary_name = "opkssh-linux-${binary_arch}"
+  $url         = $download_url ? {
+    undef => $download_base ? {
+      undef   => "https://github.com/openpubkey/opkssh/releases/download/v${version}/${binary_name}",
+      default => "${download_base}/v${version}/${binary_name}",
+    },
+    default => $download_url,
+  }
+
+  # We use the archive resource to download the binary, but we don't want to extract it since it's not an actual archive,
+  # so we set extract to false and point it to the file directly. The archive resource will still handle downloading the file.
+  # This allows us to use the system certificate store instead of using the puppet file ressource
+  # which would use the puppet builtin trusted store. This is important when downloading from private repositories with custom certificates.
+  archive { "${install_dir}/opkssh":
+    ensure   => present,
+    extract  => false,
+    source   => $url,
+    checksum => $checksum,
+    user     => 'root',
+    group    => $group,
+    creates  => "${install_dir}/opkssh",
+    require  => File[$install_dir],
+  }
+
+  # Because archive doesn't actually allow setting the permissions on the file it downloads,
+  # we need to use a separate file resource to set the permissions on the downloaded binary.
   file { "${install_dir}/opkssh":
     ensure  => file,
-    source  => $url,
     owner   => 'root',
     group   => $group,
     mode    => '0755',
-    require => File[$install_dir],
+    require => Archive["${install_dir}/opkssh"],
   }
 
   $notify_setting = $reload_sshd ? {
     true    => Exec['reload_sshd'],
     default => undef,
-  }
-
-  if $configure_sshd {
-    augeas { 'sshd_authorizedkeyscommanduser':
-      context => '/files/etc/ssh/sshd_config',
-      changes => [
-        "set AuthorizedKeysCommandUser ${user}",
-        "set AuthorizedKeysCommand '${install_dir}/opkssh verify %u %k %t'",
-      ],
-      lens    => 'Sshd.lns',
-      incl    => '/etc/ssh/sshd_config',
-      notify  => $notify_setting,
-    }
-  }
-
-  exec { 'reload_sshd':
-    command     => '/bin/systemctl reload sshd.service',
-    refreshonly => true,
   }
 
   # TODO: add sudoers entry for the opkssh user if necessary
@@ -161,5 +196,31 @@ class opkssh (
     owner  => $user,
     group  => $logfile_group,
     mode   => '0640',
+  }
+
+  if $configure_sshd {
+    augeas { 'sshd_authorizedkeyscommanduser':
+      context => '/files/etc/ssh/sshd_config',
+      changes => [
+        "set AuthorizedKeysCommandUser ${user}",
+        "set AuthorizedKeysCommand '${install_dir}/opkssh verify %u %k %t'",
+      ],
+      lens    => 'Sshd.lns',
+      incl    => '/etc/ssh/sshd_config',
+      notify  => $notify_setting,
+      require => [
+        File["${install_dir}/opkssh"],
+        File["${etc_path}/opk/config.yml"],
+        File["${etc_path}/opk/providers"],
+        File["${etc_path}/opk/auth_id"],
+        File["${etc_path}/opk/policy.d"],
+        File['/var/log/opkssh.log'],
+      ],
+    }
+  }
+
+  exec { 'reload_sshd':
+    command     => '/bin/systemctl reload sshd.service',
+    refreshonly => true,
   }
 }
