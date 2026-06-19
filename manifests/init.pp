@@ -146,24 +146,6 @@ class opkssh (
     default => undef,
   }
 
-  if $configure_sshd {
-    augeas { 'sshd_authorizedkeyscommanduser':
-      context => '/files/etc/ssh/sshd_config',
-      changes => [
-        "set AuthorizedKeysCommandUser ${user}",
-        "set AuthorizedKeysCommand '${install_dir}/opkssh verify %u %k %t'",
-      ],
-      lens    => 'Sshd.lns',
-      incl    => '/etc/ssh/sshd_config',
-      notify  => $notify_setting,
-    }
-  }
-
-  exec { 'reload_sshd':
-    command     => '/bin/systemctl reload sshd.service',
-    refreshonly => true,
-  }
-
   # TODO: add sudoers entry for the opkssh user if necessary
   # $AUTH_CMD_USER ALL=(ALL) NOPASSWD: ${INSTALL_DIR}/${BINARY_NAME} readhome *
 
@@ -214,5 +196,31 @@ class opkssh (
     owner  => $user,
     group  => $logfile_group,
     mode   => '0640',
+  }
+
+  if $configure_sshd {
+    augeas { 'sshd_authorizedkeyscommanduser':
+      context => '/files/etc/ssh/sshd_config',
+      changes => [
+        "set AuthorizedKeysCommandUser ${user}",
+        "set AuthorizedKeysCommand '${install_dir}/opkssh verify %u %k %t'",
+      ],
+      lens    => 'Sshd.lns',
+      incl    => '/etc/ssh/sshd_config',
+      notify  => $notify_setting,
+      require => [
+        File["${install_dir}/opkssh"],
+        File["${etc_path}/opk/config.yml"],
+        File["${etc_path}/opk/providers"],
+        File["${etc_path}/opk/auth_id"],
+        File["${etc_path}/opk/policy.d"],
+        File['/var/log/opkssh.log'],
+      ],
+    }
+  }
+
+  exec { 'reload_sshd':
+    command     => '/bin/systemctl reload sshd.service',
+    refreshonly => true,
   }
 }
