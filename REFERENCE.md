@@ -91,7 +91,7 @@ Data type: `String`
 
 The version of opkssh to install
 
-Default value: `'0.14.0'`
+Default value: `'0.19.1'`
 
 ##### <a name="-opkssh--install_dir"></a>`install_dir`
 
