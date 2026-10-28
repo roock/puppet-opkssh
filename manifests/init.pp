@@ -49,7 +49,7 @@ class opkssh (
   Optional[Integer] $gid            = undef,
   Boolean $system_user     = true,
   String $logfile_group   = 'adm',
-  String $version         = '0.14.0',
+  String $version         = '0.19.1',
   String $install_dir     = '/opt/opkssh',
   String $etc_path        = '/etc',
   Boolean $configure_sshd = true,
