@@ -180,4 +180,3 @@ Data type: `Optional[String]`
 The contents of the opkssh providers file
 
 Default value: `undef`
-
