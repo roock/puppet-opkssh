@@ -120,25 +120,32 @@ class opkssh (
   # so we set extract to false and point it to the file directly. The archive resource will still handle downloading the file.
   # This allows us to use the system certificate store instead of using the puppet file ressource
   # which would use the puppet builtin trusted store. This is important when downloading from private repositories with custom certificates.
-  archive { "${install_dir}/opkssh":
+  # The binary is stored per version, so changing $version downloads the new binary instead of
+  # skipping because an existing file is present. The stable path ${install_dir}/opkssh is a symlink to it.
+  archive { "${install_dir}/opkssh-${version}":
     ensure   => present,
     extract  => false,
     source   => $url,
     checksum => $checksum,
     user     => 'root',
     group    => $group,
-    creates  => "${install_dir}/opkssh",
     require  => File[$install_dir],
   }
 
   # Because archive doesn't actually allow setting the permissions on the file it downloads,
   # we need to use a separate file resource to set the permissions on the downloaded binary.
-  file { "${install_dir}/opkssh":
+  file { "${install_dir}/opkssh-${version}":
     ensure  => file,
     owner   => 'root',
     group   => $group,
     mode    => '0755',
-    require => Archive["${install_dir}/opkssh"],
+    require => Archive["${install_dir}/opkssh-${version}"],
+  }
+
+  file { "${install_dir}/opkssh":
+    ensure  => link,
+    target  => "${install_dir}/opkssh-${version}",
+    require => File["${install_dir}/opkssh-${version}"],
   }
 
   $notify_setting = $reload_sshd ? {
